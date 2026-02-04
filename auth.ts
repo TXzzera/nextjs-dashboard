@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { User } from "@/app/lib/definitions";
 import bcrypt from "bcrypt";
 import postgres from "postgres";
+import "server-only";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -31,12 +32,17 @@ export const { auth, signIn, signOut } = NextAuth({
           const { email, password } = parsedCredentials.data;
           const user = await getUser(email);
           if (!user) return null;
-          const passwordsMatch = await bcrypt.compare(password, user.password);
 
-          if (passwordsMatch) return user;
+          const passwordsMatch = await bcrypt.compare(password, user.password);
+          if (!passwordsMatch) return null;
+
+          return {
+            id: String(user.id),
+            name: user.name,
+            email: user.email,
+          };
         }
 
-        console.log("Invalid credentials");
         return null;
       },
     }),
